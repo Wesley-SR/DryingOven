@@ -3,18 +3,16 @@
 //Source: https://arduinoecia.com.br/sensor-de-temperatura-e-umidade-dht22/?srsltid=AfmBOorTfJ_5RpiVozhTu0l7Cj7TuW3k1dwqq2iNTbNCwK_GeuiEmHlJ
 
 #include <DHT.h>
-#include <LiquidCrystal.h>
+#include <LiquidCrystal_I2C.h>
 
 //Pino conectado ao pino de dados do sensor
 #define DHTPIN 7
 
-//Pinos do display
-LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
+//Inicializa o display no endereco 0x27
+LiquidCrystal_I2C lcd(0x27,16,2);
 
 //Utilize a linha de acordo com o modelo do sensor
-//#define DHTTYPE DHT11   // Sensor DHT11
 #define DHTTYPE DHT22   // Sensor DHT 22  (AM2302)
-//#define DHTTYPE DHT21   // Sensor DHT 21 (AM2301)
 
 //Definicoes do sensor : pino, tipo
 DHT dht(DHTPIN, DHTTYPE);
@@ -32,10 +30,18 @@ byte grau[8] ={ B00001100,
 void setup() 
 {
   //Inicializa o display
-  lcd.begin(16, 2);
-  lcd.clear();
+  lcd.init();
+
+  // Print LE MANS
+  lcd.setBacklight(HIGH);
+  lcd.setCursor(0,0);
+  lcd.print("Drying Oven");
+  lcd.setCursor(0,1);
+  lcd.print("LE MANS ST CAR");
+  delay(2000);
+  
   //Cria o caracter customizado com o simbolo do grau
-  lcd.createChar(0, grau); 
+  lcd.createChar(0, grau);
   //Informacoes iniciais no display
   lcd.setCursor(0,0);
   lcd.print("Temp. : ");
