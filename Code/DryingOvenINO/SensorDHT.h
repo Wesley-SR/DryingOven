@@ -9,8 +9,10 @@ struct DHTReading
 {
     bool enabled;
     bool valid;
+    bool timedOut;           // NEW: Track if read timed out
     float temperature;
     float humidity;
+    uint8_t consecutiveTimeouts;  // NEW: Counter for timeout tracking
 };
 
 class SensorDHT
@@ -28,6 +30,12 @@ public:
 private:
     DHT* sensors[MAX_DHT_SENSORS];
     bool sensorEnabled[MAX_DHT_SENSORS];
+    unsigned long lastReadTime[MAX_DHT_SENSORS];  // NEW: Track read timing
+    
+    // NEW: Non-blocking timeout-aware read function
+    bool readSensorWithTimeout(uint8_t sensorIndex, 
+                               float &temperature, 
+                               float &humidity);
 };
 
 #endif
