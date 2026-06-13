@@ -444,8 +444,7 @@ static bool isTemperatureValid(float temperature)
         temperature > TEMP_SENSOR_MAX_VALID)
     {
         Serial.print(F("ALERT: Temperature out of valid range: "));
-        Serial.print(temperature);
-        Serial.println(F(" C (valid: -40 to +80)"));
+        Serial.println(temperature);
         return false;
     }
     return true;
@@ -472,7 +471,7 @@ static void updateHeatingWatchdog(void)
         {
             heatingStartTime = millis();
             heatingWatchdogActive = true;
-            Serial.println(F("INFO: Heating watchdog started (120s max)"));
+            Serial.println(F("INFO: Heating watchdog started"));
         }
         
         unsigned long heatingDuration = millis() - heatingStartTime;

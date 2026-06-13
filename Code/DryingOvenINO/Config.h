@@ -23,7 +23,7 @@
  *************************************************/
 #define LCD_TIMEOUT_MS        100    // Max 100ms per I2C operation
 #define DISPLAY_ERROR_LED_PIN 12     // LED to indicate display errors (optional)
-#define ENABLE_DISPLAY_LED    1      // Set to 0 if no LED available
+#define ENABLE_DISPLAY_LED    0      // Set to 0 if no LED available
 
 /*************************************************
  * DHT SENSOR CONFIGURATION
@@ -60,8 +60,8 @@
 /*************************************************
  * CONTROL PARAMETERS WITH HYSTERESIS
  *************************************************/
-#define TEMP_TURN_ON_C     24.0f   // Start heating
-#define TEMP_TURN_OFF_C    32.0f   // Stop heating
+#define TEMP_TURN_ON_C     48.0f   // Start heating
+#define TEMP_TURN_OFF_C    56.0f   // Stop heating
 #define TEMP_HYSTERESIS_C  (TEMP_TURN_OFF_C - TEMP_TURN_ON_C)
 
 #define HUMIDITY_TURN_ON_PCT   85.0f   // Start dehumidifying below this
@@ -70,16 +70,9 @@
 /*************************************************
  * SAFETY WATCHDOG & VALIDATION
  *************************************************/
-#define TEMP_SENSOR_MIN_VALID  -40.0f   // DHT22 valid range
-#define TEMP_SENSOR_MAX_VALID  +80.0f   // DHT22 valid range
-#define HEATING_WATCHDOG_MS    120000   // 120 seconds max heating
-
-/*************************************************
- * SAFETY WATCHDOG & VALIDATION
- *************************************************/
-#define TEMP_SENSOR_MIN_VALID  -40.0f
-#define TEMP_SENSOR_MAX_VALID  +80.0f
-#define HEATING_WATCHDOG_MS    120000
+#define TEMP_SENSOR_MIN_VALID  -10.0f   // DHT22 valid range
+#define TEMP_SENSOR_MAX_VALID  +100.0f   // DHT22 valid range
+#define HEATING_WATCHDOG_MS    1800000   // 30 minutes max heating
 
 /*************************************************
  * STATUS LED INDICATORS
