@@ -60,19 +60,19 @@
 /*************************************************
  * CONTROL PARAMETERS WITH HYSTERESIS
  *************************************************/
-#define TEMP_TURN_ON_C     48.0f   // Start heating
-#define TEMP_TURN_OFF_C    56.0f   // Stop heating
+#define TEMP_TURN_ON_C     48.0f   // 48 Start heating
+#define TEMP_TURN_OFF_C    52.0f   // 56 Stop heating
 #define TEMP_HYSTERESIS_C  (TEMP_TURN_OFF_C - TEMP_TURN_ON_C)
 
-#define HUMIDITY_TURN_ON_PCT   85.0f   // Start dehumidifying below this
-#define HUMIDITY_TURN_OFF_PCT  92.0f   // Stop dehumidifying above this
+#define HUMIDITY_TURN_ON_PCT   90.0f   // Start dehumidifying below this
+#define HUMIDITY_TURN_OFF_PCT  80.0f   // Stop dehumidifying above this
 
 /*************************************************
  * SAFETY WATCHDOG & VALIDATION
  *************************************************/
 #define TEMP_SENSOR_MIN_VALID  -10.0f   // DHT22 valid range
 #define TEMP_SENSOR_MAX_VALID  +100.0f   // DHT22 valid range
-#define HEATING_WATCHDOG_MS    1800000   // 30 minutes max heating
+#define HEATING_WATCHDOG_MS    2400000   // 40 minutes max heating
 
 /*************************************************
  * STATUS LED INDICATORS

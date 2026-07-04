@@ -228,7 +228,7 @@ void DisplayControl::failMode()
     if (displayConnected)
     {
         safeClear();
-        safeWrite("Sensor failure", 0, 0);
+        safeWrite("Sensor com falha", 0, 0);
     }
 }
 

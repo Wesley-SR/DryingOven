@@ -67,6 +67,7 @@ static void updateHeatingWatchdog(void);
 static bool updateLedBlink(bool fast);
 static void updateStatusLeds(float temperature, float humidity, uint8_t validCount);
 static void trackSensorErrors(uint8_t validCount, uint8_t enabledCount);
+void(* resetFunc) (void) = 0;
 
 /*************************************************
  * SETUP
@@ -144,11 +145,12 @@ void loop()
     if (!hasValidSensor)
     {
         Serial.println(F("Falha: nenhum sensor DHT valido disponivel!"));
+        
         Serial.println(F("Sistema colocado em estado seguro."));
-        setSafeOutputs();
         display.failMode();
         heatingWatchdogActive = false;  // NEW (PATCH-002)
         Serial.println(F("---------------------------"));
+        setSafeOutputs();
         return;
     }
 
@@ -271,7 +273,7 @@ static void updateHumidityStateMachine(float humidity)
     {
         case HUM_STATE_DEHUMIDIFY_ON:
         {
-            if (humidity >= HUMIDITY_TURN_OFF_PCT)
+            if (humidity < HUMIDITY_TURN_OFF_PCT)
             {
                 g_humidityState = HUM_STATE_DEHUMIDIFY_OFF;
                 Serial.println(F("HUMID STATE: DEHUMIDIFY_ON -> DEHUMIDIFY_OFF"));
@@ -281,7 +283,7 @@ static void updateHumidityStateMachine(float humidity)
 
         case HUM_STATE_DEHUMIDIFY_OFF:
         {
-            if (humidity <= HUMIDITY_TURN_ON_PCT)
+            if (humidity > HUMIDITY_TURN_ON_PCT)
             {
                 g_humidityState = HUM_STATE_DEHUMIDIFY_ON;
                 Serial.println(F("HUMID STATE: DEHUMIDIFY_OFF -> DEHUMIDIFY_ON"));
@@ -358,6 +360,8 @@ static void setSafeOutputs(void)
     digitalWrite(RESISTENCE_PIN_2, RELAY_OFF);
     digitalWrite(FAN_HUMIDITY_PIN, RELAY_OFF);
     digitalWrite(FAN_PIN_1, RELAY_OFF);
+    delay(10000);
+    resetFunc();
 }
 
 static void printSensorStatus(const DHTReading readings[MAX_DHT_SENSORS], uint8_t validCount)
