@@ -40,6 +40,46 @@ void SensorDHT::begin()
     }
 }
 
+bool SensorDHT::readSensorWithTimeout(uint8_t sensorIndex, 
+                                       float &temperature, 
+                                       float &humidity)
+{
+    if ((sensorEnabled[sensorIndex] == false) || 
+        (sensors[sensorIndex] == nullptr))
+    {
+        return false;
+    }
+
+    unsigned long startTime = millis();
+    
+    // Attempt non-blocking read
+    float localTemp = sensors[sensorIndex]->readTemperature();
+    float localHum = sensors[sensorIndex]->readHumidity();
+    
+    unsigned long elapsedTime = millis() - startTime;
+    
+    // Check if read took too long
+    if (elapsedTime > DHT_READ_TIMEOUT_MS)
+    {
+        Serial.print(F("Sensor "));
+        Serial.print(sensorIndex + 1);
+        Serial.print(F(" READ TIMEOUT: "));
+        Serial.print(elapsedTime);
+        Serial.println(F(" ms"));
+        return false;
+    }
+    
+    // Check for NaN (sensor error)
+    if (isnan(localTemp) || isnan(localHum))
+    {
+        return false;
+    }
+    
+    temperature = localTemp;
+    humidity = localHum;
+    return true;
+}
+
 bool SensorDHT::readAll(DHTReading readings[MAX_DHT_SENSORS],
                         float &averageTemperature,
                         float &averageHumidity,
@@ -47,30 +87,46 @@ bool SensorDHT::readAll(DHTReading readings[MAX_DHT_SENSORS],
 {
     float tempSum = 0.0f;
     float humSum = 0.0f;
-
     validCount = 0;
 
     for (int i = 0; i < MAX_DHT_SENSORS; i++)
     {
         readings[i].enabled = sensorEnabled[i];
         readings[i].valid = false;
+        readings[i].timedOut = false;  // NEW
         readings[i].temperature = 0.0f;
         readings[i].humidity = 0.0f;
+        readings[i].consecutiveTimeouts = 0;  // NEW
 
         if ((sensorEnabled[i] == true) && (sensors[i] != nullptr))
         {
-            float localHumidity = sensors[i]->readHumidity();
-            float localTemperature = sensors[i]->readTemperature();
-
-            if (!isnan(localHumidity) && !isnan(localTemperature))
+            float localHumidity = 0.0f;
+            float localTemperature = 0.0f;
+            
+            // NEW: Use timeout-aware read
+            if (readSensorWithTimeout(i, localTemperature, localHumidity))
             {
                 readings[i].valid = true;
                 readings[i].humidity = localHumidity;
                 readings[i].temperature = localTemperature;
-
+                readings[i].consecutiveTimeouts = 0;  // Reset timeout counter on success
+                
                 humSum += localHumidity;
                 tempSum += localTemperature;
                 validCount++;
+            }
+            else
+            {
+                // NEW: Track consecutive timeouts
+                readings[i].timedOut = true;
+                readings[i].consecutiveTimeouts++;
+                
+                if (readings[i].consecutiveTimeouts >= DHT_STALL_THRESHOLD)
+                {
+                    Serial.print(F("Sensor "));
+                    Serial.print(i + 1);
+                    Serial.println(F(" marked as UNRELIABLE (too many timeouts)"));
+                }
             }
         }
     }
@@ -84,6 +140,6 @@ bool SensorDHT::readAll(DHTReading readings[MAX_DHT_SENSORS],
 
     averageTemperature = tempSum / validCount;
     averageHumidity = humSum / validCount;
-
+    
     return true;
 }
