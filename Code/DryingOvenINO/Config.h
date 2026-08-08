@@ -42,12 +42,29 @@
 #define DHT_PIN_1 9
 #define DHT_PIN_2 8
 #define DHT_PIN_3 10
-
-/*************************************************
- * SENSOR TIMEOUT CONFIGURATION
- *************************************************/
 #define DHT_READ_TIMEOUT_MS   2500
 #define DHT_STALL_THRESHOLD   3
+
+
+/*************************************************
+ * RS485 COMMUNICATION CONFIGURATION
+ *************************************************/
+
+#define RS485_BAUDRATE       9600
+#define RS485_SERIAL_CONFIG  SERIAL_8N1
+
+// RS485 serial pins
+#define RS485_RX_PIN         10
+#define RS485_TX_PIN         11
+
+// RS485 driver enable / receiver enable pin
+#define RS485_DE_RE_PIN      4
+
+#define MAX_TH04S_SENSORS    8 // Maximum number of sensors supported
+
+#define TH04S_READ_TIMEOUT_MS  500 // Timeout for RS485 read operations
+
+#define TH04S_SENSOR_1_ADDRESS     1
 
 /*************************************************
  * RELAY / ACTUATOR PINS

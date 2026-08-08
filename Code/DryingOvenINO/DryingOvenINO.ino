@@ -4,9 +4,18 @@
 #include "config.h"
 #include "DisplayControl.h"
 #include "SensorDHT.h"
+#include "sensorTH04S.h"
+#include <SoftwareSerial.h>
 
 DisplayControl display(LCD_I2C_ADDRESS, LCD_COLUMNS, LCD_ROWS);
 SensorDHT dhtSensor;
+
+/*************************************************
+ * RS485 SENSORS
+ *************************************************/
+SoftwareSerial RS485Serial(RS485_RX_PIN, RS485_TX_PIN);
+SensorTH04S sensor1(RS485Serial, RS485_DE_RE_PIN, TH04S_SENSOR_1_ADDRESS);
+unsigned long lastSensorRead = 0;
 
 /*************************************************
  * STATE MACHINES
@@ -37,8 +46,6 @@ static HumidityState g_humidityLastState = HUM_STATE_DEHUMIDIFY_OFF;
 bool temperatureStateChanged = false;
 bool humidityStateChanged = false;
 
-static OperationMode g_operationMode = NORMAL;
-
 // LED blink timing
 static unsigned long lastLedUpdate = 0;
 static bool ledBlinkState = false;
@@ -50,6 +57,13 @@ static bool heatingWatchdogActive = false;
 
 uint8_t testMode = 0;
 
+
+/*************************************************
+ * SOME CONFIGURATIONS
+ *************************************************/
+static OperationMode g_operationMode = NORMAL;
+
+
 /*************************************************
  * FUNCTION PROTOTYPES
  *************************************************/
@@ -59,7 +73,7 @@ static void updateHumidityStateMachine(float humidity);
 static void applyOutputs(void);
 static void applyOutputsNoiseTest(void);
 static void setSafeOutputs(void);
-static void printSensorStatus(const DHTReading readings[MAX_DHT_SENSORS], uint8_t validCount);
+static void dht_printSensorStatus(const DHTReading readings[MAX_DHT_SENSORS], uint8_t validCount);
 static void printStates(float temperature, float humidity);
 static bool isTemperatureValid(float temperature);
 static bool isHumidityValid(float humidity);
@@ -117,13 +131,17 @@ void setup()
     
     delay(5000);
 
-    Serial.println(F("Init Sensors"));
-    dhtSensor.begin();
-
     display.showLabels();
-    Serial.println(F("Setup ended"));
-
+    
     digitalWrite(FAN_PIN_1, RELAY_ON);
+
+    Serial.println(F("Init Sensors"));
+    // Initialize DHT sensors
+    dhtSensor.begin();
+    // Initialize RS485 sensor
+    sensor1.begin(RS485_BAUDRATE);
+
+    Serial.println(F("Setup ended"));
 }
 
 /*************************************************
@@ -133,16 +151,19 @@ void loop()
 {
     delay(MEASUREMENT_INTERVAL_MS);
 
+
+    // *******************************************
+    // DHT SENSOR READINGS
+    // *******************************************
     DHTReading readings[MAX_DHT_SENSORS];
-    float temperature = 0.0f;
-    float humidity = 0.0f;
-    uint8_t validCount = 0;
+    float dht_temperature = 0.0f;
+    float dht_humidity = 0.0f;
+    uint8_t dht_validCount = 0;
+    bool dht_hasValidSensor = dhtSensor.readAll(readings, dht_temperature, dht_humidity, dht_validCount);
 
-    bool hasValidSensor = dhtSensor.readAll(readings, temperature, humidity, validCount);
+    dht_printSensorStatus(readings, dht_validCount);
 
-    printSensorStatus(readings, validCount);
-
-    if (!hasValidSensor)
+    if (!dht_hasValidSensor)
     {
         Serial.println(F("Falha: nenhum sensor DHT valido disponivel!"));
         
@@ -154,8 +175,8 @@ void loop()
         return;
     }
 
-    // NEW (PATCH-002): Validate temperature and humidity
-    if (!isTemperatureValid(temperature) || !isHumidityValid(humidity))
+    // Validate temperature and humidity
+    if (!isTemperatureValid(dht_temperature) || !isHumidityValid(dht_humidity))
     {
         Serial.println(F("ERROR: Invalid sensor reading - using safe state"));
         setSafeOutputs();
@@ -164,9 +185,19 @@ void loop()
         return;
     }
 
-    display.updateTemperature(temperature);
-    display.updateHumidity(humidity);
-    display.validSensors(validCount);
+    // *******************************************
+    // TH04S RS485 SENSOR READINGS
+    // *******************************************
+    // Read sensors
+    th04s_readSensor(sensor1);
+
+
+    // *******************************************
+    // DISPLAY UPDATE
+    // *******************************************
+    display.updateTemperature(dht_temperature);
+    display.updateHumidity(dht_humidity);
+    display.validSensors(dht_validCount);
 
     // Check display health
     if (!display.isHealthy())
@@ -182,20 +213,20 @@ void loop()
     else // (g_operationMode == NORMAL)
     {
         // Control
-        updateTemperatureStateMachine(temperature);
-        updateHumidityStateMachine(humidity);
+        updateTemperatureStateMachine(dht_temperature);
+        updateHumidityStateMachine(dht_humidity);
         
-        // NEW (PATCH-002): Update heating watchdog
+        // Update heating watchdog
         updateHeatingWatchdog();
         
         // Update control outputs
         applyOutputs();
     }
     
-    printStates(temperature, humidity);
+    printStates(dht_temperature, dht_humidity);
     
-    // NEW (PATCH-005): Update status LEDs
-    updateStatusLeds(temperature, humidity, validCount);
+    // Update status LEDs
+    updateStatusLeds(dht_temperature, dht_humidity, dht_validCount);
 }
 
 /*************************************************
@@ -364,7 +395,7 @@ static void setSafeOutputs(void)
     resetFunc();
 }
 
-static void printSensorStatus(const DHTReading readings[MAX_DHT_SENSORS], uint8_t validCount)
+static void dht_printSensorStatus(const DHTReading readings[MAX_DHT_SENSORS], uint8_t validCount)
 {
     uint8_t enabledCount = 0;
     uint8_t failedCount = 0;
@@ -624,5 +655,63 @@ static void trackSensorErrors(uint8_t validCount, uint8_t enabledCount)
     else
     {
         sensorErrorCount = 0;
+    }
+}
+
+void th04s_readSensor(SensorTH04S& sensor)
+{
+    // Request a new measurement
+    SensorTH04SError result = sensor.read();
+
+    // Print sensor identification
+    Serial.print("Sensor ID: ");
+
+    Serial.println(sensor.getAddress());
+
+    // --------------------------------------------------------
+    // Successful reading
+    // --------------------------------------------------------
+    if (result == SENSOR_TH04S_OK)
+    {
+        Serial.print("Temperature: ");
+        Serial.print(sensor.getTemperature());
+        Serial.println(" C");
+        Serial.print("Humidity: ");
+        Serial.print(sensor.getHumidity());
+        Serial.println(" %RH");
+    }
+
+    // --------------------------------------------------------
+    // Communication error
+    // --------------------------------------------------------
+
+    else
+    {
+        Serial.print("Communication error: ");
+        Serial.println(th04s_getSensorErrorText(result));
+    }
+
+    Serial.println("-----------------------------");
+}
+
+// ============================================================
+// GET ERROR DESCRIPTION
+// ============================================================
+const char* th04s_getSensorErrorText(SensorTH04SError error)
+{
+    switch (error)
+    {
+        case SENSOR_TH04S_OK:
+            return "OK";
+        case SENSOR_TH04S_ERROR_TIMEOUT:
+            return "TIMEOUT";
+        case SENSOR_TH04S_ERROR_CRC:
+            return "CRC ERROR";
+        case SENSOR_TH04S_ERROR_INVALID_RESPONSE:
+            return "INVALID RESPONSE";
+        case SENSOR_TH04S_ERROR_COMMUNICATION:
+            return "COMMUNICATION ERROR";
+        default:
+            return "UNKNOWN ERROR";
     }
 }
