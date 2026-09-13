@@ -6,14 +6,12 @@
 #include <SoftwareSerial.h>
 
 DisplayControl display(LCD_I2C_ADDRESS, LCD_COLUMNS, LCD_ROWS);
-SoftwareSerial RS485Serial(RS485_RX_PIN, RS485_TX_PIN);
-SensorTH04SManager sensorManager(RS485Serial, RS485_DE_RE_PIN);
 
 /*************************************************
  * RS485 SENSORS
  *************************************************/
 SoftwareSerial RS485Serial(RS485_RX_PIN, RS485_TX_PIN);
-SensorTH04S sensor1(RS485Serial, RS485_DE_RE_PIN, TH04S_SENSOR_1_ADDRESS);
+SensorTH04SManager sensorManager(RS485Serial, RS485_DE_RE_PIN);
 unsigned long lastSensorRead = 0;
 
 /*************************************************
@@ -51,12 +49,6 @@ static unsigned long heatingStartTime = 0;
 static bool heatingWatchdogActive = false;
 
 uint8_t testMode = 0;
-
-
-/*************************************************
- * SOME CONFIGURATIONS
- *************************************************/
-static OperationMode g_operationMode = NORMAL;
 
 
 /*************************************************
