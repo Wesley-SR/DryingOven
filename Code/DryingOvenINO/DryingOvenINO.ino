@@ -6,8 +6,6 @@
 #include <SoftwareSerial.h>
 
 DisplayControl display(LCD_I2C_ADDRESS, LCD_COLUMNS, LCD_ROWS);
-SoftwareSerial RS485Serial(RS485_RX_PIN, RS485_TX_PIN);
-SensorTH04SManager sensorManager(RS485Serial, RS485_DE_RE_PIN);
 
 /*************************************************
  * RS485 SENSORS

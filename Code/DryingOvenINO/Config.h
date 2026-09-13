@@ -38,14 +38,6 @@
 // RS485 driver enable / receiver enable pin
 #define RS485_DE_RE_PIN      4
 
-<<<<<<< HEAD
-/* Sensor pins */
-#define DHT_PIN_1 9
-#define DHT_PIN_2 8
-#define DHT_PIN_3 10
-#define DHT_READ_TIMEOUT_MS   2500
-#define DHT_STALL_THRESHOLD   3
-=======
 #define MAX_TH04S_SENSORS    4
 #define TH04S_READ_TIMEOUT_MS 500 // Timeout for RS485 read operations
 
@@ -60,7 +52,6 @@
 #define TH04S_SENSOR_2_ADDRESS 2
 #define TH04S_SENSOR_3_ADDRESS 3
 #define TH04S_SENSOR_4_ADDRESS 4
->>>>>>> 3132340e3f40993d59918ad57a7ded09026c1b16
 
 
 /*************************************************
